@@ -1,0 +1,39 @@
+{
+  "name": "Creator Companion",
+  "summary": "A Creator Companion utility that gives viewers instant access to channel resources, community spaces, partner offers, and stream schedule — all without leaving Twitch.",
+  "description": "Creator Companion is a native Twitch Extension that puts your channel's key resources right where your viewers are watching. Set up your Creator Companion panel with channel links, community spaces, stream schedules, partner cards, viewer perks, support options, merch showcases, channel events, and quick actions — and let viewers engage with your content natively on Twitch.",
+  "version": "1.0.0",
+  "author": "Creator Bio Hub",
+  "support_email": "support@creatorbiohub.com",
+  "website_url": "https://creatorbiohub.com",
+  "privacy_policy_url": "https://creatorbiohub.com/privacy",
+  "tos_url": "https://creatorbiohub.com/terms",
+  "views": {
+    "panel": {
+      "viewer_url": "panel.html",
+      "height": 500,
+      "zoom_pixels": 1024,
+      "can_link_external_content": true
+    },
+    "video_overlay": {
+      "viewer_url": "overlay.html",
+      "can_link_external_content": true
+    },
+    "mobile": {
+      "viewer_url": "mobile.html",
+      "orientation": "both"
+    },
+    "config": {
+      "viewer_url": "config.html"
+    },
+    "live_config": {
+      "viewer_url": "live-config.html"
+    }
+  },
+  "capabilities": {
+    "bits_enabled": true
+  },
+  "whitelisted_config_urls": [],
+  "whitelisted_panel_urls": [],
+  "ebs_public_key": ""
+}

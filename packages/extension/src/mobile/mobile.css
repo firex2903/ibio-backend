@@ -1,0 +1,46 @@
+/* Mobile base — same vars as panel but optimized for touch */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --accent:       #9147FF;
+  --accent-2:     #bf94ff;
+  --accent-glow:  rgba(145, 71, 255, 0.45);
+  --glass:        rgba(255, 255, 255, 0.04);
+  --glass-hover:  rgba(255, 255, 255, 0.08);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-border-accent: rgba(145, 71, 255, 0.35);
+  --text:         #ffffff;
+  --text-sub:     rgba(255, 255, 255, 0.55);
+  --text-muted:   rgba(255, 255, 255, 0.30);
+  --radius:       14px;
+  --radius-sm:    8px;
+  --radius-pill:  100px;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  font-size: 14px; /* slightly larger touch targets */
+}
+
+html, body { background: #0a0a0f; color: #fff; width: 100%; }
+
+/* Larger touch targets for mobile */
+.bio-mobile .social-btn       { min-height: 48px; }
+.bio-mobile .action-btn       { min-height: 52px; font-size: 14px; }
+.bio-mobile .community-item   { min-height: 52px; }
+.bio-mobile .partner-card__cta { min-height: 48px; font-size: 14px; }
+.bio-mobile .merch-card__cta  { min-height: 48px; font-size: 14px; }
+.bio-mobile .viewer-perk-card__code { min-height: 52px; }
+.bio-mobile .perk-chip        { min-height: 48px; }
+
+/* Mobile spinner */
+.spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid rgba(255,255,255,0.08);
+  border-top-color: #9147FF;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+::-webkit-scrollbar { display: none; }

@@ -1,0 +1,277 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   CREATOR BIO HUB — Overlay + Modal
+   Design: dark glassmorphism · neon accents · gamer-premium feel
+───────────────────────────────────────────────────────────────────────────── */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --accent:       #9147FF;
+  --accent-2:     #bf94ff;
+  --accent-glow:  rgba(145, 71, 255, 0.45);
+  --accent-glow2: rgba(145, 71, 255, 0.15);
+  --neon-pink:    #ff4ecd;
+  --neon-cyan:    #00d4ff;
+  --bg-modal:     rgba(8, 8, 16, 0.92);
+  --glass:        rgba(255, 255, 255, 0.04);
+  --glass-hover:  rgba(255, 255, 255, 0.08);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-border-accent: rgba(145, 71, 255, 0.35);
+  --text:         #ffffff;
+  --text-sub:     rgba(255, 255, 255, 0.55);
+  --text-muted:   rgba(255, 255, 255, 0.30);
+  --radius:       14px;
+  --radius-sm:    8px;
+  --radius-pill:  100px;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+html, body { width: 100%; height: 100%; overflow: hidden; background: transparent; }
+#root { width: 100%; height: 100%; position: relative; }
+
+/* ─── Scrollbar ──────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--glass-border-accent); border-radius: 4px; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CTA WIDGET — floating pill, bottom-left corner
+═══════════════════════════════════════════════════════════════════════════ */
+
+.cta-widget {
+  position: fixed;
+  bottom: 72px;    /* above Twitch's bottom bar */
+  left: 16px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px 8px 8px;
+  background: rgba(8, 8, 16, 0.80);
+  backdrop-filter: blur(16px) saturate(1.4);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  border: 1px solid var(--glass-border-accent);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+  box-shadow:
+    0 0 0 1px rgba(145,71,255,0.12),
+    0 4px 24px rgba(0,0,0,0.5),
+    0 0 32px var(--accent-glow2);
+  animation: cta-breathe 3s ease-in-out infinite;
+  user-select: none;
+}
+
+.cta-widget:hover {
+  transform: translateY(-2px) scale(1.03);
+  border-color: var(--accent);
+  box-shadow:
+    0 0 0 1px rgba(145,71,255,0.4),
+    0 8px 32px rgba(0,0,0,0.6),
+    0 0 48px var(--accent-glow);
+  animation: none;
+}
+
+.cta-widget:active { transform: translateY(0) scale(0.98); }
+
+@keyframes cta-breathe {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(145,71,255,0.12), 0 4px 24px rgba(0,0,0,0.5), 0 0 24px var(--accent-glow2); }
+  50%       { box-shadow: 0 0 0 1px rgba(145,71,255,0.28), 0 4px 24px rgba(0,0,0,0.5), 0 0 40px var(--accent-glow); }
+}
+
+.cta-widget__avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1.5px solid var(--accent);
+  object-fit: cover;
+  background: #1a1a2e;
+  flex-shrink: 0;
+  box-shadow: 0 0 10px var(--accent-glow);
+}
+
+.cta-widget__avatar-fallback {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1.5px solid var(--accent);
+  background: linear-gradient(135deg, #1a0a2e, #2d1470);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent-2);
+  flex-shrink: 0;
+  box-shadow: 0 0 10px var(--accent-glow);
+}
+
+.cta-widget__text {
+  display: flex;
+  flex-direction: column;
+  gap: 0px;
+  min-width: 0;
+}
+
+.cta-widget__name {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  line-height: 1.3;
+}
+
+.cta-widget__sub {
+  font-size: 10px;
+  color: var(--accent-2);
+  font-weight: 500;
+  white-space: nowrap;
+  line-height: 1.2;
+}
+
+.cta-widget__chevron {
+  width: 14px;
+  height: 14px;
+  color: var(--accent-2);
+  flex-shrink: 0;
+  margin-left: 2px;
+  transition: transform 0.18s ease;
+}
+
+.cta-widget:hover .cta-widget__chevron {
+  transform: translateX(2px);
+}
+
+/* Live dot indicator */
+.cta-widget__live {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ff4747;
+  flex-shrink: 0;
+  animation: live-pulse 1.8s ease-in-out infinite;
+  box-shadow: 0 0 6px #ff4747;
+}
+
+@keyframes live-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.5; transform: scale(0.7); }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MODAL BACKDROP
+═══════════════════════════════════════════════════════════════════════════ */
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(6px) saturate(0.8);
+  -webkit-backdrop-filter: blur(6px) saturate(0.8);
+}
+
+.modal-backdrop--enter {
+  animation: backdrop-in 0.22s ease forwards;
+}
+
+.modal-backdrop--exit {
+  animation: backdrop-out 0.18s ease forwards;
+}
+
+@keyframes backdrop-in {
+  from { opacity: 0; backdrop-filter: blur(0px); }
+  to   { opacity: 1; backdrop-filter: blur(6px) saturate(0.8); }
+}
+
+@keyframes backdrop-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+/* Close target — full backdrop is clickable to dismiss */
+.modal-backdrop__close-area {
+  position: absolute;
+  inset: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MODAL CARD
+═══════════════════════════════════════════════════════════════════════════ */
+
+.modal-card {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 380px;
+  max-height: calc(100vh - 32px);
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-modal);
+  border: 1px solid var(--glass-border-accent);
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow:
+    0 0 0 1px rgba(145,71,255,0.1),
+    0 32px 80px rgba(0,0,0,0.7),
+    0 0 60px rgba(145,71,255,0.12),
+    inset 0 1px 0 rgba(255,255,255,0.06);
+}
+
+.modal-card--enter {
+  animation: modal-in 0.28s cubic-bezier(0.34, 1.3, 0.64, 1) forwards;
+}
+
+.modal-card--exit {
+  animation: modal-out 0.18s ease-in forwards;
+}
+
+@keyframes modal-in {
+  from { opacity: 0; transform: scale(0.88) translateY(16px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes modal-out {
+  from { opacity: 1; transform: scale(1) translateY(0); }
+  to   { opacity: 0; transform: scale(0.94) translateY(8px); }
+}
+
+/* Close button */
+.modal-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 20;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.5);
+  border: 1px solid var(--glass-border);
+  color: var(--text-sub);
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  line-height: 1;
+}
+
+.modal-close:hover {
+  background: rgba(255,255,255,0.12);
+  color: var(--text);
+  border-color: rgba(255,255,255,0.2);
+}
+
+/* Modal scroll body */
+.modal-body {
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex: 1;
+  min-height: 0;
+}

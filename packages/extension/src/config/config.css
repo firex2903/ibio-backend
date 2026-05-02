@@ -1,0 +1,287 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --accent: #9147FF;
+  --accent-hover: #772ce8;
+  --bg: #0e0e10;
+  --surface: #18181b;
+  --surface-2: #1f1f23;
+  --border: #2a2a2e;
+  --text: #efeff1;
+  --text-muted: #adadb8;
+  --danger: #eb4034;
+  --success: #00c853;
+  --radius: 8px;
+  --radius-sm: 4px;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--bg);
+}
+
+body { background: var(--bg); }
+
+.config {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 20px 16px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* ── Header ── */
+.config-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.config-header h1 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.badge--free { background: var(--surface-2); color: var(--text-muted); }
+.badge--pro { background: var(--accent); color: #fff; }
+
+/* ── Section card ── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.card-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* ── Form fields ── */
+.field { display: flex; flex-direction: column; gap: 4px; }
+
+.field label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.field input,
+.field select,
+.field textarea {
+  padding: 8px 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 13px;
+  font-family: inherit;
+  width: 100%;
+  transition: border-color 0.15s;
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.field input[type="color"] {
+  height: 36px;
+  padding: 2px 4px;
+  cursor: pointer;
+}
+
+.field textarea { resize: vertical; min-height: 60px; }
+
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+.pro-field { position: relative; }
+.pro-badge {
+  position: absolute;
+  top: -2px;
+  right: 0;
+  font-size: 9px;
+  font-weight: 700;
+  background: var(--accent);
+  color: #fff;
+  padding: 1px 5px;
+  border-radius: 10px;
+  text-transform: uppercase;
+}
+
+/* ── Link items ── */
+.link-list { display: flex; flex-direction: column; gap: 6px; }
+
+.link-item {
+  display: grid;
+  grid-template-columns: auto 1fr 1fr 1fr auto;
+  gap: 6px;
+  align-items: center;
+  padding: 8px 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.link-item select,
+.link-item input {
+  padding: 6px 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 12px;
+  font-family: inherit;
+  width: 100%;
+}
+
+.link-item select:focus,
+.link-item input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.drag-handle {
+  cursor: grab;
+  color: var(--text-muted);
+  font-size: 14px;
+  padding: 0 2px;
+  user-select: none;
+}
+
+.drag-handle:active { cursor: grabbing; }
+
+/* ── Buttons ── */
+.btn {
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: opacity 0.15s, background 0.15s;
+  font-family: inherit;
+}
+
+.btn:hover { opacity: 0.88; }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.btn--primary { background: var(--accent); color: #fff; }
+.btn--secondary { background: var(--surface-2); color: var(--text); border: 1px solid var(--border); }
+.btn--danger { background: transparent; color: var(--danger); border: 1px solid var(--danger); padding: 6px 10px; font-size: 11px; }
+.btn--sm { padding: 6px 10px; font-size: 11px; }
+
+.btn-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+/* ── Save status ── */
+.save-status {
+  font-size: 12px;
+  color: var(--success);
+  margin-right: auto;
+}
+
+.save-status--error { color: var(--danger); }
+
+/* ── Upgrade banner ── */
+.upgrade-banner {
+  background: linear-gradient(135deg, #2a1454, #1a0a2e);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.upgrade-banner__text h3 { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+.upgrade-banner__text p { font-size: 12px; color: var(--text-muted); }
+
+/* ── Module editor item ── */
+.module-editor {
+  padding: 10px 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.module-editor__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.module-editor__kind {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+  flex: 0 0 auto;
+}
+
+.module-editor__group {
+  font-size: 10px;
+  color: var(--text-muted);
+  padding: 1px 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  flex: 0 0 auto;
+}
+
+.module-editor__visible {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--text-muted);
+  cursor: pointer;
+  user-select: none;
+}
+
+/* ── Module kind picker grid ── */
+.module-kind-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.module-kind-grid .btn {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.btn--disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

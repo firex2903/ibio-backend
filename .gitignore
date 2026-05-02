@@ -1,0 +1,10 @@
+node_modules/
+packages/backend/uploads/
+packages/backend/dist/
+packages/backend/backend.log
+packages/backend/.env
+packages/extension/dist/
+extension.zip
+tunnel.log
+*.log
+.env

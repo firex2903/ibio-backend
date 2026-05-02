@@ -1,0 +1,176 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// Creator Companion — Database Schema
+// Primary entity: CompanionModule (typed, self-contained content unit)
+// ─────────────────────────────────────────────────────────────────────────────
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum Plan {
+  STARTER
+  PRO
+}
+
+enum ModuleKind {
+  CHANNEL_LINK     // Creator on another platform
+  COMMUNITY_SPACE  // Community group / server
+  STREAM_SCHEDULE  // Display-only schedule
+  PARTNER_CARD     // Creator partner with optional viewer perk [Pro]
+  VIEWER_PERK      // Standalone copyable perk card             [Pro]
+  SUPPORT_OPTION   // Way to support the creator
+  MERCH_SHOWCASE   // Merch store
+  CHANNEL_EVENT    // Tournament / event / signup
+  QUICK_ACTION     // Custom CTA button
+}
+
+enum InteractionKind {
+  MODULE_OPENED     // Viewer viewed the module
+  MODULE_ENGAGED    // Viewer interacted without navigating (e.g. copied code)
+  MODULE_NAVIGATED  // Viewer followed the module URL
+}
+
+enum Referrer {
+  PANEL
+  OVERLAY
+  MOBILE
+}
+
+// ─── CreatorProfile ───────────────────────────────────────────────────────────
+// Root entity. id = Twitch channel_id (string, from JWT claims.channel_id).
+
+model CreatorProfile {
+  id               String   @id           // Twitch channel_id
+  displayName      String
+  channelBio       String   @default("")
+  avatarUrl        String   @default("")
+  plan             Plan     @default(STARTER)
+  stripeCustomerId String?  @unique
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  brandAssets  BrandAssets?
+  modules      CompanionModule[]
+  interactions ViewerInteraction[]
+  subscription CreatorSubscription?
+  products     DigitalProduct[]
+}
+
+// ─── BrandAssets ─────────────────────────────────────────────────────────────
+// 1-to-1 with CreatorProfile. Isolated so brand updates don't touch modules.
+
+model BrandAssets {
+  id             String        @id @default(cuid())
+  profileId      String        @unique
+  profile        CreatorProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  primaryColor   String        @default("#9147FF")   // header gradient start
+  secondaryColor String        @default("#1a0a2e")   // header gradient end
+  accentColor    String        @default("#9147FF")   // theme accent — Pro customizable
+  updatedAt      DateTime      @updatedAt
+}
+
+// ─── CompanionModule ──────────────────────────────────────────────────────────
+// The core content unit. moduleKind drives rendering.
+// config is a JSON column validated by Zod in the application layer.
+
+model CompanionModule {
+  id         String        @id @default(cuid())
+  profileId  String
+  profile    CreatorProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  moduleKind ModuleKind
+  title      String
+  subtitle   String?
+  position   Int           // ascending order, broadcaster-controlled
+  visible    Boolean       @default(true)
+  config     Json          // shape validated per moduleKind — see moduleConfigSchemas.ts
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  interactions ViewerInteraction[]
+
+  @@index([profileId, position])
+  @@index([profileId, moduleKind])
+  @@index([profileId, visible])
+}
+
+// ─── ViewerInteraction ────────────────────────────────────────────────────────
+// Replaces ClickEvent. Tracks typed interactions per module, not raw URL clicks.
+
+model ViewerInteraction {
+  id              String          @id @default(cuid())
+  profileId       String
+  profile         CreatorProfile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  moduleId        String
+  module          CompanionModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  interactionKind InteractionKind
+  referrer        Referrer
+  viewerOpaqueId  String?         // Twitch opaque user ID, absent for logged-out viewers
+  createdAt       DateTime        @default(now())
+
+  @@index([profileId, createdAt])
+  @@index([moduleId, createdAt])
+  @@index([moduleId, interactionKind])
+}
+
+// ─── DigitalProduct ───────────────────────────────────────────────────────────
+// Files uploaded by the creator, sold to viewers via Bits.
+
+model DigitalProduct {
+  id          String   @id @default(cuid())
+  profileId   String
+  profile     CreatorProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  title       String
+  description String   @default("")
+  priceBits   Int                          // 300 | 500 | 1000
+  priceSku    String                       // Bits SKU matching the price
+  fileKey     String                       // filename on disk (uuid-based)
+  fileName    String                       // original filename shown to buyer
+  fileSize    Int
+  mimeType    String
+  active      Boolean  @default(true)
+  purchases   DigitalPurchase[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([profileId, active])
+}
+
+// ─── DigitalPurchase ─────────────────────────────────────────────────────────
+
+model DigitalPurchase {
+  id            String         @id @default(cuid())
+  productId     String
+  product       DigitalProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+  buyerUserId   String                     // Twitch opaque user ID
+  txId          String         @unique     // Bits transaction ID (dedup)
+  downloadToken String         @unique @default(cuid())
+  downloadCount Int            @default(0)
+  maxDownloads  Int            @default(5)
+  expiresAt     DateTime
+  purchasedAt   DateTime       @default(now())
+
+  @@index([downloadToken])
+  @@index([productId])
+}
+
+// ─── CreatorSubscription ──────────────────────────────────────────────────────
+// Stripe subscription state. Status drives plan field on CreatorProfile.
+
+model CreatorSubscription {
+  id                   String        @id @default(cuid())
+  profileId            String        @unique
+  profile              CreatorProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  stripeSubscriptionId String        @unique
+  stripePriceId        String
+  status               String        // mirrors Stripe status: active | trialing | past_due | canceled
+  currentPeriodEnd     DateTime
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+}
