@@ -8,16 +8,18 @@ COPY packages/backend/package*.json ./packages/backend/
 COPY shared/types/package*.json ./shared/types/
 RUN npm ci --workspace=@creator-bio-hub/backend --workspace=@creator-bio-hub/types
 
+# ── Prisma Generate (isolated stage — invalidates when schema.prisma changes) ─
+FROM deps AS prisma-client
+COPY packages/backend/prisma ./packages/backend/prisma
+RUN npx prisma generate --schema=packages/backend/prisma/schema.prisma
+
 # ── Build ─────────────────────────────────────────────────────────────────────
-FROM deps AS builder
+FROM prisma-client AS builder
 COPY shared/types ./shared/types
 COPY packages/backend ./packages/backend
 
 # Build types first (backend imports from @creator-bio-hub/types at runtime)
 RUN npm run build --workspace=@creator-bio-hub/types
-
-# Generate Prisma client BEFORE compiling backend so tsc has the types
-RUN npx prisma generate --schema=packages/backend/prisma/schema.prisma
 
 # Build backend (|| true: tsc emits JS even with type errors; noEmitOnError defaults to false)
 RUN npm run build --workspace=@creator-bio-hub/backend || true
@@ -28,23 +30,19 @@ WORKDIR /app
 ENV NODE_ENV=production
 
 # Re-install prod deps so npm creates workspace symlinks in this image.
-# node_modules/@creator-bio-hub/types will symlink to ../../shared/types.
 COPY package*.json ./
 COPY packages/backend/package*.json ./packages/backend/
 COPY shared/types/package*.json ./shared/types/
 RUN npm ci --omit=dev --workspace=@creator-bio-hub/backend --workspace=@creator-bio-hub/types
 
-# Copy compiled backend to where npm start expects it (cwd = /app/packages/backend)
+# Copy compiled backend
 COPY --from=builder /app/packages/backend/dist ./packages/backend/dist
 COPY --from=builder /app/packages/backend/prisma ./packages/backend/prisma
 
-# Copy generated Prisma client (npm ci --omit=dev doesn't regenerate it)
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+# Copy generated Prisma client from isolated prisma-client stage
+COPY --from=prisma-client /app/node_modules/.prisma ./node_modules/.prisma
 
-# Copy compiled types so the workspace symlink resolves at runtime:
-#   node_modules/@creator-bio-hub/types -> ../../shared/types
-#   shared/types/package.json has main: ./dist/index.js
-#   shared/types/dist/index.js  <-- this is what we copy here
+# Copy compiled types so the workspace symlink resolves at runtime
 COPY --from=builder /app/shared/types/dist ./shared/types/dist
 
 EXPOSE 3001
