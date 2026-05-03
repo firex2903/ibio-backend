@@ -10,6 +10,8 @@ RUN npm ci --workspace=@creator-bio-hub/backend --workspace=@creator-bio-hub/typ
 
 # ── Prisma Generate (isolated stage — invalidates when schema.prisma changes) ─
 FROM deps AS prisma-client
+# openssl needed so Prisma detects OpenSSL 3 and generates linux-musl-openssl-3.0.x binary
+RUN apk add --no-cache openssl
 COPY packages/backend/prisma ./packages/backend/prisma
 RUN npx prisma generate --schema=packages/backend/prisma/schema.prisma
 
@@ -28,6 +30,8 @@ RUN npm run build --workspace=@creator-bio-hub/backend || true
 FROM node:20-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
+# openssl needed at runtime so Prisma detects OpenSSL 3 and loads linux-musl-openssl-3.0.x engine
+RUN apk add --no-cache openssl
 
 # Re-install prod deps so npm creates workspace symlinks in this image.
 COPY package*.json ./
