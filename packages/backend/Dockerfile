@@ -34,9 +34,9 @@ COPY packages/backend/package*.json ./packages/backend/
 COPY shared/types/package*.json ./shared/types/
 RUN npm ci --omit=dev --workspace=@creator-bio-hub/backend --workspace=@creator-bio-hub/types
 
-# Copy compiled backend
-COPY --from=builder /app/packages/backend/dist ./dist
-COPY --from=builder /app/packages/backend/prisma ./prisma
+# Copy compiled backend to where npm start expects it (cwd = /app/packages/backend)
+COPY --from=builder /app/packages/backend/dist ./packages/backend/dist
+COPY --from=builder /app/packages/backend/prisma ./packages/backend/prisma
 
 # Copy generated Prisma client (npm ci --omit=dev doesn't regenerate it)
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
@@ -48,4 +48,4 @@ COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/shared/types/dist ./shared/types/dist
 
 EXPOSE 3001
-CMD ["node", "/app/dist/index.js"]
+CMD ["node", "/app/packages/backend/dist/index.js"]
