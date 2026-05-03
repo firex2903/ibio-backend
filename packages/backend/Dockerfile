@@ -45,4 +45,4 @@ COPY --from=builder /app/packages/backend/prisma ./prisma
 COPY --from=builder /app/shared/types/dist ./shared/types/dist
 
 EXPOSE 3001
-CMD ["node", "dist/index.js"]
+CMD ["node", "/app/dist/index.js"]
