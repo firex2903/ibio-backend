@@ -38,6 +38,9 @@ RUN npm ci --omit=dev --workspace=@creator-bio-hub/backend --workspace=@creator-
 COPY --from=builder /app/packages/backend/dist ./dist
 COPY --from=builder /app/packages/backend/prisma ./prisma
 
+# Copy generated Prisma client (npm ci --omit=dev doesn't regenerate it)
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+
 # Copy compiled types so the workspace symlink resolves at runtime:
 #   node_modules/@creator-bio-hub/types -> ../../shared/types
 #   shared/types/package.json has main: ./dist/index.js
