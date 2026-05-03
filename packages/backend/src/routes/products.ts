@@ -50,7 +50,7 @@ interface BitsClaims {
 export async function productsRoutes(app: FastifyInstance) {
 
   // ── List products (public) ────────────────────────────────────────────────
-  app.get('/creator/:channelId/products', async (req, reply) => {
+  app.get('/creator/:channelId/products', async (req) => {
     const { channelId } = req.params as { channelId: string };
     const products = await prisma.digitalProduct.findMany({
       where: { profileId: channelId, active: true },

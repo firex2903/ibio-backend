@@ -16,11 +16,11 @@ COPY packages/backend ./packages/backend
 # Build types first (backend imports from @creator-bio-hub/types at runtime)
 RUN npm run build --workspace=@creator-bio-hub/types
 
+# Generate Prisma client BEFORE compiling backend so tsc has the types
+RUN npx prisma generate --schema=packages/backend/prisma/schema.prisma
+
 # Build backend
 RUN npm run build --workspace=@creator-bio-hub/backend
-
-# Generate Prisma client into the backend dist tree
-RUN npx prisma generate --schema=packages/backend/prisma/schema.prisma
 
 # ── Runtime ───────────────────────────────────────────────────────────────────
 FROM node:20-alpine AS runner
