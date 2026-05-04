@@ -11,8 +11,10 @@ import {
 } from '../middleware/verifyTwitchJwt';
 import type { CreatorProfileDTO, BrandAssets, CompanionModuleDTO } from '@creator-bio-hub/types';
 
-const AVATARS_DIR = path.resolve('uploads/avatars');
-mkdirSync(AVATARS_DIR, { recursive: true });
+const AVATARS_DIR  = path.resolve('uploads/avatars');
+const OVERLAYS_DIR = path.resolve('uploads/overlays');
+mkdirSync(AVATARS_DIR,  { recursive: true });
+mkdirSync(OVERLAYS_DIR, { recursive: true });
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -235,14 +237,59 @@ export async function creatorRoutes(app: FastifyInstance) {
    */
   app.get('/avatars/:filename', async (request, reply) => {
     const { filename } = request.params as { filename: string };
-    // Prevent path traversal
     if (filename.includes('..') || filename.includes('/')) {
       return reply.code(400).send({ error: 'Invalid filename' });
     }
     const filePath = path.join(AVATARS_DIR, filename);
     if (!existsSync(filePath)) return reply.code(404).send({ error: 'Not found' });
-    const stream = createReadStream(filePath);
-    return reply.send(stream);
+    return reply.send(createReadStream(filePath));
+  });
+
+  /**
+   * POST /v1/creator/:channelId/overlay-bg
+   * Broadcaster only. Uploads overlay button background image.
+   */
+  app.post(
+    '/creator/:channelId/overlay-bg',
+    { preHandler: requireBroadcaster },
+    async (request, reply) => {
+      const { channelId } = request.params as { channelId: string };
+      if (!assertChannelOwnership(request, reply, channelId)) return;
+
+      const allowedImages = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
+      const parts = (request as any).parts() as AsyncIterable<any>;
+
+      for await (const part of parts) {
+        if (part.file) {
+          if (!allowedImages.has(part.mimetype)) {
+            await part.file.resume();
+            return reply.code(400).send({ error: 'Only image files allowed' });
+          }
+          const ext = path.extname(part.filename as string) || '.jpg';
+          const fileKey = `${channelId}-${crypto.randomUUID()}${ext}`;
+          const filePath = path.join(OVERLAYS_DIR, fileKey);
+          const ws = createWriteStream(filePath);
+          for await (const chunk of part.file) ws.write(chunk);
+          await new Promise<void>((res, rej) => { ws.end(); ws.on('finish', res); ws.on('error', rej); });
+          return reply.send({ fileKey });
+        }
+      }
+      return reply.code(400).send({ error: 'No file uploaded' });
+    }
+  );
+
+  /**
+   * GET /v1/overlay-bgs/:filename
+   * Public — serves uploaded overlay background images.
+   */
+  app.get('/overlay-bgs/:filename', async (request, reply) => {
+    const { filename } = request.params as { filename: string };
+    if (filename.includes('..') || filename.includes('/')) {
+      return reply.code(400).send({ error: 'Invalid filename' });
+    }
+    const filePath = path.join(OVERLAYS_DIR, filename);
+    if (!existsSync(filePath)) return reply.code(404).send({ error: 'Not found' });
+    return reply.send(createReadStream(filePath));
   });
 
   /**

@@ -84,6 +84,8 @@ export function ConfigPanel() {
   const [overlayPosition, setOverlayPosition]     = useState<'left' | 'right'>('left');
   const [overlayBgColor, setOverlayBgColor]       = useState('');
   const [overlayBgImageUrl, setOverlayBgImageUrl] = useState('');
+  const [overlayBgUploading, setOverlayBgUploading] = useState(false);
+  const overlayBgFileRef = useRef<HTMLInputElement>(null);
 
   // Modules
   const [modules, setModules] = useState<DraftModule[]>([]);
@@ -108,6 +110,27 @@ export function ConfigPanel() {
 
   const isPro   = profile?.plan === 'PRO';
   const atLimit = !isPro && modules.length >= STARTER_MODULE_LIMIT;
+
+  const uploadOverlayBg = async (file: File) => {
+    if (!auth) return;
+    setOverlayBgUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch(`${API_BASE}/creator/${auth.channelId}/overlay-bg`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${auth.token}` },
+        body: fd,
+      });
+      if (res.ok) {
+        const data = await res.json() as { fileKey: string };
+        setOverlayBgImageUrl(`${API_BASE}/overlay-bgs/${data.fileKey}`);
+      }
+    } finally {
+      setOverlayBgUploading(false);
+      if (overlayBgFileRef.current) overlayBgFileRef.current.value = '';
+    }
+  };
 
   const uploadAvatar = async (file: File) => {
     if (!auth) return;
@@ -322,8 +345,23 @@ export function ConfigPanel() {
           </div>
         </div>
         <div className="field">
-          <label>Background Image URL (optional, overrides color)</label>
-          <input value={overlayBgImageUrl} onChange={(e) => setOverlayBgImageUrl(e.target.value)} placeholder="https://..." />
+          <label>Background Image (subir archivo)</label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <input
+              ref={overlayBgFileRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              style={{ flex: 1, fontSize: 11 }}
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadOverlayBg(f); }}
+            />
+            {overlayBgUploading && <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Subiendo...</span>}
+          </div>
+          {overlayBgImageUrl && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
+              <img src={overlayBgImageUrl} style={{ height: 32, borderRadius: 4, objectFit: 'cover' }} alt="bg preview" />
+              <button className="btn btn--danger btn--sm" onClick={() => setOverlayBgImageUrl('')}>✕</button>
+            </div>
+          )}
         </div>
       </div>
 
