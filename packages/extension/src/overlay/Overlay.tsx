@@ -1,14 +1,40 @@
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useTwitchAuth } from '../hooks/useTwitchAuth';
 import { useCreatorProfile } from '../hooks/useCreatorProfile';
 import { BioCard } from '../shared/BioCard';
+import type { CreatorProfileDTO } from '@creator-bio-hub/types';
 import '../shared/biocard.css';
+
+const DEMO_PROFILE: CreatorProfileDTO = {
+  profileId: 'demo',
+  displayName: 'EsG_FireX',
+  channelBio: 'Amante de los videojuegos y deportes electronicos 🎮',
+  avatarUrl: 'https://static-cdn.jtvnw.net/jtv_user_pictures/esg_firex-profile_image-300x300.png',
+  plan: 'STARTER',
+  brandAssets: { primaryColor: '#9147FF', secondaryColor: '#1a0a2e', accentColor: '#9147FF' },
+  modules: [
+    {
+      id: 'demo-ig',
+      moduleKind: 'CHANNEL_LINK',
+      title: 'Instagram',
+      subtitle: '@firex.gg',
+      position: 0,
+      visible: true,
+      config: { platform: 'instagram', url: 'https://www.instagram.com/firex.gg/', label: 'Sígueme en Instagram' },
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    },
+  ],
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+};
 
 type ModalState = 'closed' | 'opening' | 'open' | 'closing';
 
 export function Overlay() {
   const { auth } = useTwitchAuth();
-  const { profile } = useCreatorProfile(auth?.channelId, auth?.token);
+  const { profile: rawProfile } = useCreatorProfile(auth?.channelId, auth?.token);
+  const profile = rawProfile ?? DEMO_PROFILE;
   const [modalState, setModalState] = useState<ModalState>('closed');
   const [isLive, setIsLive] = useState(false);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -47,10 +73,21 @@ export function Overlay() {
   const enterClass = modalState === 'opening' || modalState === 'open' ? '--enter' : '';
   const exitClass  = modalState === 'closing' ? '--exit' : '';
 
+  const ba = profile.brandAssets;
+  const overlayPos = (ba?.overlayPosition ?? 'left') as 'left' | 'right';
+  const ctaStyle: React.CSSProperties = {
+    ...(overlayPos === 'right' ? { left: 'unset', right: 16 } : {}),
+    ...(ba?.overlayBgImageUrl
+      ? { backgroundImage: `url(${ba.overlayBgImageUrl})`, backgroundSize: 'cover', backgroundPosition: 'center', background: 'none' }
+      : ba?.overlayBgColor
+      ? { background: ba.overlayBgColor }
+      : {}),
+  };
+
   return (
     <>
       {/* ── CTA Widget ── */}
-      <div className="cta-widget" onClick={openModal} role="button" aria-label="Open Creator Companion">
+      <div className="cta-widget" style={ctaStyle} onClick={openModal} role="button" aria-label="Open Creator Companion">
         {/* Live dot — only rendered during an actual live broadcast */}
         {isLive && <span className="cta-widget__live" aria-hidden="true" />}
 
@@ -97,14 +134,7 @@ export function Overlay() {
 
             {/* Scrollable body */}
             <div className="modal-body">
-              {profile ? (
-                <BioCard profile={profile} auth={auth} referrer="OVERLAY" />
-              ) : (
-                <div className="bio-empty" style={{ padding: '60px 20px' }}>
-                  <div className="bio-empty__icon">🎮</div>
-                  <div className="bio-empty__title">Loading profile...</div>
-                </div>
-              )}
+              <BioCard profile={profile} auth={auth} referrer="OVERLAY" />
             </div>
           </div>
         </div>

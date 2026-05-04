@@ -1,5 +1,8 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
+import path from 'path';
+import crypto from 'crypto';
+import { createWriteStream, createReadStream, existsSync, mkdirSync } from 'fs';
 import { prisma } from '../services/db';
 import {
   verifyTwitchJwt,
@@ -7,6 +10,9 @@ import {
   assertChannelOwnership,
 } from '../middleware/verifyTwitchJwt';
 import type { CreatorProfileDTO, BrandAssets, CompanionModuleDTO } from '@creator-bio-hub/types';
+
+const AVATARS_DIR = path.resolve('uploads/avatars');
+mkdirSync(AVATARS_DIR, { recursive: true });
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -23,6 +29,9 @@ export function buildProfileDTO(
       primaryColor: string;
       secondaryColor: string;
       accentColor: string;
+      overlayPosition: string;
+      overlayBgColor: string;
+      overlayBgImageUrl: string;
     } | null;
     modules: Array<{
       id: string;
@@ -42,6 +51,9 @@ export function buildProfileDTO(
     primaryColor: '#9147FF',
     secondaryColor: '#1a0a2e',
     accentColor: '#9147FF',
+    overlayPosition: 'left',
+    overlayBgColor: '',
+    overlayBgImageUrl: '',
   };
 
   const modules: CompanionModuleDTO[] = profile.modules
@@ -85,9 +97,12 @@ const UpdateProfileSchema = z.object({
   avatarUrl:   z.string().max(500).optional(),
   brandAssets: z
     .object({
-      primaryColor:   z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
-      secondaryColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
-      accentColor:    z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+      primaryColor:     z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+      secondaryColor:   z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+      accentColor:      z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+      overlayPosition:  z.enum(['left', 'right']).optional(),
+      overlayBgColor:   z.string().max(50).optional(),
+      overlayBgImageUrl: z.string().max(500).optional(),
     })
     .optional(),
 });
@@ -179,6 +194,56 @@ export async function creatorRoutes(app: FastifyInstance) {
       return reply.send({ ok: true });
     }
   );
+
+  /**
+   * POST /v1/creator/:channelId/avatar
+   * Broadcaster only. Accepts multipart image upload, stores it, returns fileKey.
+   * Frontend constructs URL as ${API_BASE}/avatars/${fileKey}
+   */
+  app.post(
+    '/creator/:channelId/avatar',
+    { preHandler: requireBroadcaster },
+    async (request, reply) => {
+      const { channelId } = request.params as { channelId: string };
+      if (!assertChannelOwnership(request, reply, channelId)) return;
+
+      const allowedImages = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
+      const parts = (request as any).parts() as AsyncIterable<any>;
+
+      for await (const part of parts) {
+        if (part.file) {
+          if (!allowedImages.has(part.mimetype)) {
+            await part.file.resume();
+            return reply.code(400).send({ error: 'Only image files allowed (jpeg/png/webp/gif)' });
+          }
+          const ext = path.extname(part.filename as string) || '.jpg';
+          const fileKey = `${channelId}-${crypto.randomUUID()}${ext}`;
+          const filePath = path.join(AVATARS_DIR, fileKey);
+          const ws = createWriteStream(filePath);
+          for await (const chunk of part.file) ws.write(chunk);
+          await new Promise<void>((res, rej) => { ws.end(); ws.on('finish', res); ws.on('error', rej); });
+          return reply.send({ fileKey });
+        }
+      }
+      return reply.code(400).send({ error: 'No file uploaded' });
+    }
+  );
+
+  /**
+   * GET /v1/avatars/:filename
+   * Public — serves uploaded avatar images.
+   */
+  app.get('/avatars/:filename', async (request, reply) => {
+    const { filename } = request.params as { filename: string };
+    // Prevent path traversal
+    if (filename.includes('..') || filename.includes('/')) {
+      return reply.code(400).send({ error: 'Invalid filename' });
+    }
+    const filePath = path.join(AVATARS_DIR, filename);
+    if (!existsSync(filePath)) return reply.code(404).send({ error: 'Not found' });
+    const stream = createReadStream(filePath);
+    return reply.send(stream);
+  });
 
   /**
    * GET /v1/creator/:channelId/profile/full

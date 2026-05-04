@@ -72,12 +72,18 @@ export function ConfigPanel() {
   const { profile, loading, refetch } = useCreatorProfileFull(auth?.channelId, auth?.token);
 
   // Identity fields
-  const [displayName, setDisplayName] = useState('');
-  const [channelBio, setChannelBio]   = useState('');
-  const [avatarUrl, setAvatarUrl]     = useState('');
-  const [primaryColor, setPrimary]    = useState('#9147FF');
-  const [secondaryColor, setSecondary]= useState('#1a0a2e');
-  const [accentColor, setAccent]      = useState('#9147FF');
+  const [displayName, setDisplayName]   = useState('');
+  const [channelBio, setChannelBio]     = useState('');
+  const [avatarUrl, setAvatarUrl]       = useState('');
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const avatarFileRef = useRef<HTMLInputElement>(null);
+  const [primaryColor, setPrimary]      = useState('#9147FF');
+  const [secondaryColor, setSecondary]  = useState('#1a0a2e');
+  const [accentColor, setAccent]        = useState('#9147FF');
+  // Overlay settings
+  const [overlayPosition, setOverlayPosition]     = useState<'left' | 'right'>('left');
+  const [overlayBgColor, setOverlayBgColor]       = useState('');
+  const [overlayBgImageUrl, setOverlayBgImageUrl] = useState('');
 
   // Modules
   const [modules, setModules] = useState<DraftModule[]>([]);
@@ -92,6 +98,9 @@ export function ConfigPanel() {
     setPrimary(profile.brandAssets.primaryColor);
     setSecondary(profile.brandAssets.secondaryColor);
     setAccent(profile.brandAssets.accentColor);
+    setOverlayPosition((profile.brandAssets.overlayPosition as 'left' | 'right') ?? 'left');
+    setOverlayBgColor(profile.brandAssets.overlayBgColor ?? '');
+    setOverlayBgImageUrl(profile.brandAssets.overlayBgImageUrl ?? '');
     setModules(
       profile.modules.map((m) => ({ ...m, _tempId: m.id }))
     );
@@ -99,6 +108,27 @@ export function ConfigPanel() {
 
   const isPro   = profile?.plan === 'PRO';
   const atLimit = !isPro && modules.length >= STARTER_MODULE_LIMIT;
+
+  const uploadAvatar = async (file: File) => {
+    if (!auth) return;
+    setAvatarUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch(`${API_BASE}/creator/${auth.channelId}/avatar`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${auth.token}` },
+        body: fd,
+      });
+      if (res.ok) {
+        const data = await res.json() as { fileKey: string };
+        setAvatarUrl(`${API_BASE}/avatars/${data.fileKey}`);
+      }
+    } finally {
+      setAvatarUploading(false);
+      if (avatarFileRef.current) avatarFileRef.current.value = '';
+    }
+  };
 
   const addModule = (kind: ModuleKind) => {
     if (atLimit) return;
@@ -132,7 +162,7 @@ export function ConfigPanel() {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${auth.token}` },
         body: JSON.stringify({
           displayName, channelBio, avatarUrl,
-          brandAssets: { primaryColor, secondaryColor, accentColor },
+          brandAssets: { primaryColor, secondaryColor, accentColor, overlayPosition, overlayBgColor, overlayBgImageUrl },
         }),
       });
       if (!profileRes.ok) throw new Error(await profileRes.text());
@@ -229,10 +259,20 @@ export function ConfigPanel() {
             <input value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="Your channel name" maxLength={64} />
           </div>
           <div className="field">
-            <label>Avatar URL</label>
+            <label>Avatar</label>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <input style={{ flex: 1 }} value={avatarUrl} onChange={(e) => setAvatarUrl(e.target.value)} placeholder="https://i.ibb.co/... (direct image link)" />
               <AvatarPreview url={avatarUrl} />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
+              <input
+                ref={avatarFileRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                style={{ flex: 1, fontSize: 11 }}
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadAvatar(f); }}
+              />
+              {avatarUploading && <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Subiendo...</span>}
             </div>
           </div>
         </div>
@@ -262,6 +302,28 @@ export function ConfigPanel() {
             <label>Accent Color</label>
             <input type="color" value={accentColor} onChange={(e) => setAccent(e.target.value)} disabled={!isPro} />
           </div>
+        </div>
+      </div>
+
+      {/* ── Overlay Button ── */}
+      <div className="card">
+        <div className="card-title">🎛️ Overlay Button</div>
+        <div className="field-row">
+          <div className="field">
+            <label>Position</label>
+            <select value={overlayPosition} onChange={(e) => setOverlayPosition(e.target.value as 'left' | 'right')}>
+              <option value="left">Left</option>
+              <option value="right">Right</option>
+            </select>
+          </div>
+          <div className="field">
+            <label>Background Color</label>
+            <input type="color" value={overlayBgColor || '#080810'} onChange={(e) => setOverlayBgColor(e.target.value)} />
+          </div>
+        </div>
+        <div className="field">
+          <label>Background Image URL (optional, overrides color)</label>
+          <input value={overlayBgImageUrl} onChange={(e) => setOverlayBgImageUrl(e.target.value)} placeholder="https://..." />
         </div>
       </div>
 

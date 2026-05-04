@@ -35,45 +35,19 @@ const DEMO_PROFILE: CreatorProfileDTO = {
 
 export function Panel() {
   const { auth, theme } = useTwitchAuth();
-  const { profile, loading, error } = useCreatorProfile(auth?.channelId, auth?.token);
+  const { profile } = useCreatorProfile(auth?.channelId, auth?.token);
 
-  if (loading) {
-    return (
-      <div className="bio-panel" data-theme={theme}>
-        <div style={{ padding: '20px 16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-            <div className="skeleton skeleton--avatar" />
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <div className="skeleton skeleton--line" />
-              <div className="skeleton skeleton--line-sm" />
-            </div>
-          </div>
-          <div className="skeleton" style={{ height: '60px', width: '100%', borderRadius: '10px' }} />
-          <div className="skeleton" style={{ height: '44px', width: '100%', borderRadius: '10px' }} />
-          <div className="skeleton" style={{ height: '44px', width: '100%', borderRadius: '10px' }} />
-        </div>
-      </div>
-    );
-  }
-
-  // No auth or backend error → show demo profile
-  const activeProfile = profile ?? ((!auth || error) ? DEMO_PROFILE : null);
-
-  if (!activeProfile) {
-    return (
-      <div className="bio-panel" data-theme={theme}>
-        <div className="bio-empty">
-          <div className="bio-empty__icon">⚠️</div>
-          <div className="bio-empty__title">Could not load profile</div>
-          <div className="bio-empty__sub">Check your extension configuration.</div>
-        </div>
-      </div>
-    );
-  }
+  // Always render something: real profile when loaded, otherwise demo
+  const activeProfile = profile ?? DEMO_PROFILE;
 
   return (
-    <div data-theme={theme}>
-      <BioCard profile={activeProfile} auth={auth} referrer="PANEL" wrapClass="bio-panel" />
+    <div style={{ background: '#1a0a2e', minHeight: '100px', padding: '8px' }}>
+      <div style={{ color: '#9147FF', fontSize: '11px', fontFamily: 'monospace', marginBottom: '4px' }}>
+        iBioX v3 ✓ {auth ? `ch:${auth.channelId}` : 'no-auth'}
+      </div>
+      <div data-theme={theme}>
+        <BioCard profile={activeProfile} auth={auth} referrer="PANEL" wrapClass="bio-panel" />
+      </div>
     </div>
   );
 }

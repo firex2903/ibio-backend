@@ -68,13 +68,16 @@ model CreatorProfile {
 // 1-to-1 with CreatorProfile. Isolated so brand updates don't touch modules.
 
 model BrandAssets {
-  id             String        @id @default(cuid())
-  profileId      String        @unique
-  profile        CreatorProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
-  primaryColor   String        @default("#9147FF")   // header gradient start
-  secondaryColor String        @default("#1a0a2e")   // header gradient end
-  accentColor    String        @default("#9147FF")   // theme accent — Pro customizable
-  updatedAt      DateTime      @updatedAt
+  id                String        @id @default(cuid())
+  profileId         String        @unique
+  profile           CreatorProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  primaryColor      String        @default("#9147FF")   // header gradient start
+  secondaryColor    String        @default("#1a0a2e")   // header gradient end
+  accentColor       String        @default("#9147FF")   // theme accent — Pro customizable
+  overlayPosition   String        @default("left")      // "left" | "right"
+  overlayBgColor    String        @default("")          // CSS color or empty
+  overlayBgImageUrl String        @default("")          // URL of background image or empty
+  updatedAt         DateTime      @updatedAt
 }
 
 // ─── CompanionModule ──────────────────────────────────────────────────────────

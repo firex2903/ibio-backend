@@ -131,6 +131,9 @@ export interface BrandAssets {
   primaryColor: string;   // header gradient start
   secondaryColor: string; // header gradient end
   accentColor: string;    // neon accent — Pro only customizable
+  overlayPosition?: string;   // "left" | "right"
+  overlayBgColor?: string;    // CSS color or empty
+  overlayBgImageUrl?: string; // URL of background image or empty
 }
 
 export interface CompanionModuleDTO {
