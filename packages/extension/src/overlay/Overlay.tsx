@@ -77,19 +77,28 @@ export function Overlay() {
   const overlayPos = (ba?.overlayPosition ?? 'left') as 'left' | 'right';
   const ctaStyle: React.CSSProperties = {
     ...(overlayPos === 'right' ? { left: 'unset', right: 16 } : {}),
-    ...(ba?.overlayBgImageUrl
-      ? { backgroundImage: `url(${ba.overlayBgImageUrl})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundColor: 'transparent', backdropFilter: 'none' }
-      : ba?.overlayBgColor
-      ? { background: ba.overlayBgColor }
-      : {}),
+    ...(!ba?.overlayBgImageUrl && ba?.overlayBgColor ? { background: ba.overlayBgColor } : {}),
+    ...(ba?.overlayBgImageUrl ? { overflow: 'hidden' } : {}),
   };
 
   return (
     <>
       {/* ── CTA Widget ── */}
       <div className="cta-widget" style={ctaStyle} onClick={openModal} role="button" aria-label="Open Creator Companion">
+        {/* Background image via <img> to bypass CSS background-image CSP restrictions */}
+        {ba?.overlayBgImageUrl && (
+          <img
+            src={ba.overlayBgImageUrl}
+            aria-hidden="true"
+            style={{
+              position: 'absolute', inset: 0, width: '100%', height: '100%',
+              objectFit: 'cover', zIndex: 0, pointerEvents: 'none',
+            }}
+            alt=""
+          />
+        )}
         {/* Live dot — only rendered during an actual live broadcast */}
-        {isLive && <span className="cta-widget__live" aria-hidden="true" />}
+        {isLive && <span className="cta-widget__live" aria-hidden="true" style={{ position: 'relative', zIndex: 1 }} />}
 
         {/* Avatar */}
         {profile?.avatarUrl ? (
@@ -97,21 +106,22 @@ export function Overlay() {
             className="cta-widget__avatar"
             src={profile.avatarUrl}
             alt={profile.displayName}
+            style={{ position: 'relative', zIndex: 1 }}
           />
         ) : (
-          <div className="cta-widget__avatar-fallback">
+          <div className="cta-widget__avatar-fallback" style={{ position: 'relative', zIndex: 1 }}>
             {profile?.displayName?.[0]?.toUpperCase() ?? '?'}
           </div>
         )}
 
         {/* Text */}
-        <div className="cta-widget__text">
+        <div className="cta-widget__text" style={{ position: 'relative', zIndex: 1 }}>
           <span className="cta-widget__name">{profile?.displayName ?? 'Creator Info'}</span>
           <span className="cta-widget__sub">Channel Resources</span>
         </div>
 
         {/* Chevron */}
-        <svg className="cta-widget__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <svg className="cta-widget__chevron" style={{ position: 'relative', zIndex: 1 }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
           <polyline points="9 18 15 12 9 6" />
         </svg>
       </div>
