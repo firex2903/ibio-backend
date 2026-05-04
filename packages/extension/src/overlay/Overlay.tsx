@@ -78,7 +78,7 @@ export function Overlay() {
   const ctaStyle: React.CSSProperties = {
     ...(overlayPos === 'right' ? { left: 'unset', right: 16 } : {}),
     ...(ba?.overlayBgImageUrl
-      ? { backgroundImage: `url(${ba.overlayBgImageUrl})`, backgroundSize: 'cover', backgroundPosition: 'center', background: 'none' }
+      ? { backgroundImage: `url(${ba.overlayBgImageUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }
       : ba?.overlayBgColor
       ? { background: ba.overlayBgColor }
       : {}),
