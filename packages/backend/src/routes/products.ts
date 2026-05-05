@@ -9,15 +9,17 @@
  */
 
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { createWriteStream, createReadStream, existsSync } from 'fs';
+import { createWriteStream, createReadStream, existsSync, mkdirSync } from 'fs';
 import { unlink } from 'fs/promises';
 import path from 'path';
 import crypto from 'crypto';
 import { prisma } from '../services/db.js';
 import { requireBroadcaster, assertChannelOwnership } from '../middleware/verifyTwitchJwt.js';
+import { uploadToR2, getFromR2, r2Configured } from '../services/r2.js';
 import jwt from 'jsonwebtoken';
 
 const UPLOADS_DIR = path.resolve('uploads');
+mkdirSync(UPLOADS_DIR, { recursive: true });
 const EXT_SECRET  = Buffer.from(process.env.TWITCH_EXT_SECRET ?? '', 'base64');
 
 // Allowed MIME types for uploads
@@ -89,22 +91,31 @@ export async function productsRoutes(app: FastifyInstance) {
         fileKey   = `${crypto.randomUUID()}${ext}`;
         fileName  = part.filename;
         mimeType  = part.mimetype;
-        filePath  = path.join(UPLOADS_DIR, fileKey);
-        try {
-          const ws = createWriteStream(filePath);
-          for await (const chunk of part.file) {
-            fileSize += chunk.length;
-            if (fileSize > MAX_FILE_SIZE) {
-              ws.destroy();
-              await unlink(filePath).catch(() => {});
-              return reply.code(413).send({ error: 'File too large (max 100 MB)' });
-            }
-            ws.write(chunk);
+
+        // Buffer file in memory (capped at MAX_FILE_SIZE)
+        const chunks: Buffer[] = [];
+        for await (const chunk of part.file) {
+          fileSize += chunk.length;
+          if (fileSize > MAX_FILE_SIZE) {
+            return reply.code(413).send({ error: 'File too large (max 100 MB)' });
           }
+          chunks.push(chunk as Buffer);
+        }
+        const body = Buffer.concat(chunks);
+
+        if (r2Configured) {
+          try {
+            await uploadToR2(`products/${fileKey}`, body, mimeType);
+          } catch (err: any) {
+            req.log.error({ err }, 'R2 upload failed');
+            return reply.code(500).send({ error: 'Upload failed' });
+          }
+        } else {
+          // Local disk fallback
+          filePath = path.join(UPLOADS_DIR, fileKey);
+          const ws = createWriteStream(filePath);
+          ws.write(body);
           await new Promise<void>((res, rej) => { ws.end(); ws.on('finish', res); ws.on('error', rej); });
-        } catch {
-          await unlink(filePath).catch(() => {});
-          return reply.code(500).send({ error: 'Upload failed' });
         }
       } else {
         fields[part.fieldname] = part.value as string;
@@ -252,10 +263,13 @@ export async function productsRoutes(app: FastifyInstance) {
     if (!product || !product.mimeType.startsWith('image/')) {
       return reply.code(404).send({ error: 'Not found' });
     }
-    const filePath = path.join(UPLOADS_DIR, product.fileKey);
-    if (!existsSync(filePath)) return reply.code(404).send({ error: 'File not found' });
     reply.header('Content-Type', product.mimeType);
     reply.header('Cache-Control', 'public, max-age=3600');
+    if (r2Configured) {
+      return reply.send(await getFromR2(`products/${product.fileKey}`));
+    }
+    const filePath = path.join(UPLOADS_DIR, product.fileKey);
+    if (!existsSync(filePath)) return reply.code(404).send({ error: 'File not found' });
     return reply.send(createReadStream(filePath));
   });
 
@@ -274,9 +288,6 @@ export async function productsRoutes(app: FastifyInstance) {
       return reply.code(410).send({ error: 'Download limit reached' });
     }
 
-    const filePath = path.join(UPLOADS_DIR, purchase.product.fileKey);
-    if (!existsSync(filePath)) return reply.code(404).send({ error: 'File not found' });
-
     await prisma.digitalPurchase.update({
       where: { id: purchase.id },
       data:  { downloadCount: { increment: 1 } },
@@ -285,6 +296,12 @@ export async function productsRoutes(app: FastifyInstance) {
     reply.header('Content-Type', purchase.product.mimeType);
     reply.header('Content-Disposition', `attachment; filename="${purchase.product.fileName}"`);
     reply.header('Content-Length', purchase.product.fileSize);
+
+    if (r2Configured) {
+      return reply.send(await getFromR2(`products/${purchase.product.fileKey}`));
+    }
+    const filePath = path.join(UPLOADS_DIR, purchase.product.fileKey);
+    if (!existsSync(filePath)) return reply.code(404).send({ error: 'File not found' });
     return reply.send(createReadStream(filePath));
   });
 }

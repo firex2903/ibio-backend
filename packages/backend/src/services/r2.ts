@@ -1,5 +1,6 @@
 // Cloudflare R2 storage helper. S3-compatible API.
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+import type { Readable } from 'stream';
 
 const accountId   = process.env.R2_ACCOUNT_ID ?? '';
 const accessKey   = process.env.R2_ACCESS_KEY_ID ?? '';
@@ -31,4 +32,10 @@ export async function uploadToR2(
     CacheControl: 'public, max-age=31536000, immutable',
   }));
   return `${publicBase}/${key}`;
+}
+
+export async function getFromR2(key: string): Promise<Readable> {
+  if (!client) throw new Error('R2 not configured');
+  const res = await client.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
+  return res.Body as Readable;
 }
