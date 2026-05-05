@@ -123,8 +123,8 @@ export function ConfigPanel() {
         body: fd,
       });
       if (res.ok) {
-        const data = await res.json() as { fileKey: string };
-        setOverlayBgImageUrl(`${API_BASE}/overlay-bgs/${data.fileKey}`);
+        const data = await res.json() as { fileKey: string; url?: string };
+        setOverlayBgImageUrl(data.url ?? `${API_BASE}/overlay-bgs/${data.fileKey}`);
       }
     } finally {
       setOverlayBgUploading(false);
@@ -144,8 +144,8 @@ export function ConfigPanel() {
         body: fd,
       });
       if (res.ok) {
-        const data = await res.json() as { fileKey: string };
-        setAvatarUrl(`${API_BASE}/avatars/${data.fileKey}`);
+        const data = await res.json() as { fileKey: string; url?: string };
+        setAvatarUrl(data.url ?? `${API_BASE}/avatars/${data.fileKey}`);
       }
     } finally {
       setAvatarUploading(false);

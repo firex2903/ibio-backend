@@ -92,6 +92,9 @@ export interface BrandAssets {
     primaryColor: string;
     secondaryColor: string;
     accentColor: string;
+    overlayPosition?: string;
+    overlayBgColor?: string;
+    overlayBgImageUrl?: string;
 }
 export interface CompanionModuleDTO {
     id: string;

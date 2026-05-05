@@ -4,6 +4,7 @@ import path from 'path';
 import crypto from 'crypto';
 import { createWriteStream, createReadStream, existsSync, mkdirSync } from 'fs';
 import { prisma } from '../services/db';
+import { uploadToR2, r2Configured } from '../services/r2';
 import {
   verifyTwitchJwt,
   requireBroadcaster,
@@ -208,26 +209,7 @@ export async function creatorRoutes(app: FastifyInstance) {
     async (request, reply) => {
       const { channelId } = request.params as { channelId: string };
       if (!assertChannelOwnership(request, reply, channelId)) return;
-
-      const allowedImages = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
-      const parts = (request as any).parts() as AsyncIterable<any>;
-
-      for await (const part of parts) {
-        if (part.file) {
-          if (!allowedImages.has(part.mimetype)) {
-            await part.file.resume();
-            return reply.code(400).send({ error: 'Only image files allowed (jpeg/png/webp/gif)' });
-          }
-          const ext = path.extname(part.filename as string) || '.jpg';
-          const fileKey = `${channelId}-${crypto.randomUUID()}${ext}`;
-          const filePath = path.join(AVATARS_DIR, fileKey);
-          const ws = createWriteStream(filePath);
-          for await (const chunk of part.file) ws.write(chunk);
-          await new Promise<void>((res, rej) => { ws.end(); ws.on('finish', res); ws.on('error', rej); });
-          return reply.send({ fileKey });
-        }
-      }
-      return reply.code(400).send({ error: 'No file uploaded' });
+      return handleImageUpload(request, reply, channelId, 'avatars', AVATARS_DIR);
     }
   );
 
@@ -255,26 +237,7 @@ export async function creatorRoutes(app: FastifyInstance) {
     async (request, reply) => {
       const { channelId } = request.params as { channelId: string };
       if (!assertChannelOwnership(request, reply, channelId)) return;
-
-      const allowedImages = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
-      const parts = (request as any).parts() as AsyncIterable<any>;
-
-      for await (const part of parts) {
-        if (part.file) {
-          if (!allowedImages.has(part.mimetype)) {
-            await part.file.resume();
-            return reply.code(400).send({ error: 'Only image files allowed' });
-          }
-          const ext = path.extname(part.filename as string) || '.jpg';
-          const fileKey = `${channelId}-${crypto.randomUUID()}${ext}`;
-          const filePath = path.join(OVERLAYS_DIR, fileKey);
-          const ws = createWriteStream(filePath);
-          for await (const chunk of part.file) ws.write(chunk);
-          await new Promise<void>((res, rej) => { ws.end(); ws.on('finish', res); ws.on('error', rej); });
-          return reply.send({ fileKey });
-        }
-      }
-      return reply.code(400).send({ error: 'No file uploaded' });
+      return handleImageUpload(request, reply, channelId, 'overlays', OVERLAYS_DIR);
     }
   );
 
@@ -328,6 +291,53 @@ export async function creatorRoutes(app: FastifyInstance) {
       return reply.send({ profile: buildProfileDTO(profile, false) });
     }
   );
+}
+
+// ─── Image Upload Helper (R2 with local-disk fallback) ───────────────────────
+
+const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
+
+async function handleImageUpload(
+  request: any,
+  reply: any,
+  channelId: string,
+  prefix: 'avatars' | 'overlays',
+  fallbackDir: string,
+): Promise<any> {
+  const parts = request.parts() as AsyncIterable<any>;
+  for await (const part of parts) {
+    if (part.file) {
+      if (!ALLOWED_IMAGE_TYPES.has(part.mimetype)) {
+        await part.file.resume();
+        return reply.code(400).send({ error: 'Only image files allowed (jpeg/png/webp/gif)' });
+      }
+      const ext = path.extname(part.filename as string) || '.jpg';
+      const fileKey = `${channelId}-${crypto.randomUUID()}${ext}`;
+
+      // Buffer the file (size already capped by fastify-multipart 100MB)
+      const chunks: Buffer[] = [];
+      for await (const chunk of part.file) chunks.push(chunk as Buffer);
+      const body = Buffer.concat(chunks);
+
+      // Prefer R2 if configured, otherwise write to local disk (ephemeral on Railway)
+      if (r2Configured) {
+        try {
+          const url = await uploadToR2(`${prefix}/${fileKey}`, body, part.mimetype);
+          return reply.send({ fileKey, url });
+        } catch (err: any) {
+          request.log.error({ err }, 'R2 upload failed');
+          return reply.code(500).send({ error: 'Upload failed' });
+        }
+      } else {
+        const filePath = path.join(fallbackDir, fileKey);
+        const ws = createWriteStream(filePath);
+        ws.write(body);
+        await new Promise<void>((res, rej) => { ws.end(); ws.on('finish', res); ws.on('error', rej); });
+        return reply.send({ fileKey });
+      }
+    }
+  }
+  return reply.code(400).send({ error: 'No file uploaded' });
 }
 
 // ─── Shared Plan Helper ───────────────────────────────────────────────────────
