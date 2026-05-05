@@ -15,7 +15,7 @@ import path from 'path';
 import crypto from 'crypto';
 import { prisma } from '../services/db.js';
 import { requireBroadcaster, assertChannelOwnership } from '../middleware/verifyTwitchJwt.js';
-import { uploadToR2, getFromR2, r2Configured } from '../services/r2.js';
+import { uploadToR2, getFromR2, r2Configured, r2PublicUrl } from '../services/r2.js';
 import jwt from 'jsonwebtoken';
 
 const UPLOADS_DIR = path.resolve('uploads');
@@ -270,11 +270,12 @@ export async function productsRoutes(app: FastifyInstance) {
     if (!product || !product.mimeType.startsWith('image/')) {
       return reply.code(404).send({ error: 'Not found' });
     }
+    if (r2Configured) {
+      // Redirect to R2 public URL — avoids proxy + Twitch CSP issues
+      return reply.redirect(r2PublicUrl(`products/${product.fileKey}`), 302);
+    }
     reply.header('Content-Type', product.mimeType);
     reply.header('Cache-Control', 'public, max-age=3600');
-    if (r2Configured) {
-      return reply.send(await getFromR2(`products/${product.fileKey}`));
-    }
     const filePath = path.join(UPLOADS_DIR, product.fileKey);
     if (!existsSync(filePath)) return reply.code(404).send({ error: 'File not found' });
     return reply.send(createReadStream(filePath));

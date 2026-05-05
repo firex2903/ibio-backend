@@ -39,3 +39,7 @@ export async function getFromR2(key: string): Promise<Readable> {
   const res = await client.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
   return res.Body as Readable;
 }
+
+export function r2PublicUrl(key: string): string {
+  return `${publicBase}/${key}`;
+}
