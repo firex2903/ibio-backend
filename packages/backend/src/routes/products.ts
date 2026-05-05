@@ -133,6 +133,13 @@ export async function productsRoutes(app: FastifyInstance) {
       return reply.code(400).send({ error: 'Invalid price. Use 300, 500, or 1000 bits.' });
     }
 
+    // Ensure CreatorProfile exists (FK requirement)
+    await prisma.creatorProfile.upsert({
+      where:  { id: channelId },
+      create: { id: channelId, displayName: '' },
+      update: {},
+    });
+
     const product = await prisma.digitalProduct.create({
       data: {
         profileId:   channelId,
