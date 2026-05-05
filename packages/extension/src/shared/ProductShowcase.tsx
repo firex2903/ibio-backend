@@ -14,6 +14,7 @@ interface Product {
   fileName: string;
   mimeType: string;
   fileSize: number;
+  previewUrl: string | null;
 }
 
 interface Props {
@@ -127,7 +128,7 @@ function ProductCard({ product, channelId }: { product: Product; channelId: stri
       <div className="product-card" onClick={() => setOpen(true)} style={{ cursor: 'pointer' }}>
         <div className="product-card__thumb">
           {isImage
-            ? <img src={`${API_BASE}/preview/${product.id}`} alt={product.title} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+            ? <img src={product.previewUrl ?? ''} alt={product.title} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
             : <span style={{ fontSize: 24 }}>{typeIcon()}</span>
           }
         </div>
@@ -147,7 +148,7 @@ function ProductCard({ product, channelId }: { product: Product; channelId: stri
             {/* Preview area */}
             <div className="product-modal__preview">
               {isImage ? (
-                <img src={`${API_BASE}/preview/${product.id}`} alt={product.title} />
+                <img src={product.previewUrl ?? ''} alt={product.title} />
               ) : (
                 <div className="product-modal__file-icon">
                   <span>{typeIcon()}</span>

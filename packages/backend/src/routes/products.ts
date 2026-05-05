@@ -60,11 +60,17 @@ export async function productsRoutes(app: FastifyInstance) {
       select: {
         id: true, title: true, description: true,
         priceBits: true, priceSku: true,
-        fileName: true, mimeType: true, fileSize: true,
+        fileName: true, mimeType: true, fileSize: true, fileKey: true,
         _count: { select: { purchases: true } },
       },
     });
-    return { products };
+    const productsWithUrl = products.map((p) => ({
+      ...p,
+      previewUrl: p.mimeType.startsWith('image/') && r2Configured
+        ? r2PublicUrl(`products/${p.fileKey}`)
+        : null,
+    }));
+    return { products: productsWithUrl };
   });
 
   // ── Create product + upload file ──────────────────────────────────────────
