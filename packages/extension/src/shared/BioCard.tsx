@@ -78,8 +78,34 @@ export function BioCard({ profile, auth, referrer, wrapClass }: Props) {
         </div>
       </div>
 
+      {/* ── Featured Social Banner ── */}
+      {profile.brandAssets?.featuredBannerUrl && (
+        <a
+          href={profile.brandAssets.featuredBannerUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="featured-banner"
+          style={profile.brandAssets.featuredBannerImageUrl ? {
+            backgroundImage: `url(${profile.brandAssets.featuredBannerImageUrl})`,
+          } : undefined}
+        >
+          {profile.brandAssets.featuredBannerImageUrl && (
+            <img
+              src={profile.brandAssets.featuredBannerImageUrl}
+              aria-hidden="true"
+              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0 }}
+              alt=""
+            />
+          )}
+          <span className="featured-banner__label" style={{ position: 'relative', zIndex: 1 }}>
+            {profile.brandAssets.featuredBannerLabel || '🔗 Ver más'}
+          </span>
+        </a>
+      )}
+
       {/* ── Bits Actions ── */}
       <div className="bits-actions">
+        <div className="bio-section__title" style={{ marginBottom: 8 }}>💜 Donaciones</div>
         <div className="bits-donate-row">
           <BitsButton channelId={channelId} sku="002X" label="300" icon="💜" className="bits-btn bits-btn--donate bits-btn--tier" />
           <BitsButton channelId={channelId} sku="001X" label="500" icon="💜" className="bits-btn bits-btn--donate bits-btn--tier" />

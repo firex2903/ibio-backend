@@ -14,8 +14,10 @@ import type { CreatorProfileDTO, BrandAssets, CompanionModuleDTO } from '@creato
 
 const AVATARS_DIR  = path.resolve('uploads/avatars');
 const OVERLAYS_DIR = path.resolve('uploads/overlays');
+const BANNERS_DIR  = path.resolve('uploads/banners');
 mkdirSync(AVATARS_DIR,  { recursive: true });
 mkdirSync(OVERLAYS_DIR, { recursive: true });
+mkdirSync(BANNERS_DIR,  { recursive: true });
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -104,8 +106,11 @@ const UpdateProfileSchema = z.object({
       secondaryColor:   z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
       accentColor:      z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
       overlayPosition:  z.enum(['left', 'right']).optional(),
-      overlayBgColor:   z.string().max(50).optional(),
-      overlayBgImageUrl: z.string().max(500).optional(),
+      overlayBgColor:        z.string().max(50).optional(),
+      overlayBgImageUrl:     z.string().max(500).optional(),
+      featuredBannerUrl:     z.string().max(500).optional(),
+      featuredBannerImageUrl: z.string().max(500).optional(),
+      featuredBannerLabel:   z.string().max(80).optional(),
     })
     .optional(),
 });
@@ -251,6 +256,34 @@ export async function creatorRoutes(app: FastifyInstance) {
       return reply.code(400).send({ error: 'Invalid filename' });
     }
     const filePath = path.join(OVERLAYS_DIR, filename);
+    if (!existsSync(filePath)) return reply.code(404).send({ error: 'Not found' });
+    return reply.send(createReadStream(filePath));
+  });
+
+  /**
+   * POST /v1/creator/:channelId/featured-banner
+   * Broadcaster only. Uploads featured banner background image.
+   */
+  app.post(
+    '/creator/:channelId/featured-banner',
+    { preHandler: requireBroadcaster },
+    async (request, reply) => {
+      const { channelId } = request.params as { channelId: string };
+      if (!assertChannelOwnership(request, reply, channelId)) return;
+      return handleImageUpload(request, reply, channelId, 'banners', BANNERS_DIR);
+    }
+  );
+
+  /**
+   * GET /v1/banners/:filename
+   * Public — serves uploaded banner images.
+   */
+  app.get('/banners/:filename', async (request, reply) => {
+    const { filename } = request.params as { filename: string };
+    if (filename.includes('..') || filename.includes('/')) {
+      return reply.code(400).send({ error: 'Invalid filename' });
+    }
+    const filePath = path.join(BANNERS_DIR, filename);
     if (!existsSync(filePath)) return reply.code(404).send({ error: 'Not found' });
     return reply.send(createReadStream(filePath));
   });

@@ -128,7 +128,7 @@ function ProductCard({ product, channelId }: { product: Product; channelId: stri
       <div className="product-card" onClick={() => setOpen(true)} style={{ cursor: 'pointer' }}>
         <div className="product-card__thumb">
           {isImage
-            ? <img src={product.previewUrl ?? ''} alt={product.title} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+            ? <img src={product.previewUrl ?? 'https://pub-f91cc9f45749455283cf99aeff6d472e.r2.dev/overlays/60691070-271b93be-866f-473a-967b-6aee8321bbb6.webp'} alt={product.title} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
             : <span style={{ fontSize: 24 }}>{typeIcon()}</span>
           }
         </div>
@@ -148,7 +148,7 @@ function ProductCard({ product, channelId }: { product: Product; channelId: stri
             {/* Preview area */}
             <div className="product-modal__preview">
               {isImage ? (
-                <img src={product.previewUrl ?? ''} alt={product.title} />
+                <img src={product.previewUrl ?? 'https://pub-f91cc9f45749455283cf99aeff6d472e.r2.dev/overlays/60691070-271b93be-866f-473a-967b-6aee8321bbb6.webp'} alt={product.title} />
               ) : (
                 <div className="product-modal__file-icon">
                   <span>{typeIcon()}</span>

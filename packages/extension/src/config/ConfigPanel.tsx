@@ -87,6 +87,13 @@ export function ConfigPanel() {
   const [overlayBgUploading, setOverlayBgUploading] = useState(false);
   const overlayBgFileRef = useRef<HTMLInputElement>(null);
 
+  // Featured banner
+  const [featuredBannerUrl, setFeaturedBannerUrl]         = useState('');
+  const [featuredBannerImageUrl, setFeaturedBannerImageUrl] = useState('');
+  const [featuredBannerLabel, setFeaturedBannerLabel]     = useState('');
+  const [bannerUploading, setBannerUploading]             = useState(false);
+  const bannerFileRef = useRef<HTMLInputElement>(null);
+
   // Modules
   const [modules, setModules] = useState<DraftModule[]>([]);
   const [saving, setSaving]   = useState(false);
@@ -103,6 +110,9 @@ export function ConfigPanel() {
     setOverlayPosition((profile.brandAssets.overlayPosition as 'left' | 'right') ?? 'left');
     setOverlayBgColor(profile.brandAssets.overlayBgColor ?? '');
     setOverlayBgImageUrl(profile.brandAssets.overlayBgImageUrl ?? '');
+    setFeaturedBannerUrl(profile.brandAssets.featuredBannerUrl ?? '');
+    setFeaturedBannerImageUrl(profile.brandAssets.featuredBannerImageUrl ?? '');
+    setFeaturedBannerLabel(profile.brandAssets.featuredBannerLabel ?? '');
     setModules(
       profile.modules.map((m) => ({ ...m, _tempId: m.id }))
     );
@@ -129,6 +139,27 @@ export function ConfigPanel() {
     } finally {
       setOverlayBgUploading(false);
       if (overlayBgFileRef.current) overlayBgFileRef.current.value = '';
+    }
+  };
+
+  const uploadBannerBg = async (file: File) => {
+    if (!auth) return;
+    setBannerUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch(`${API_BASE}/creator/${auth.channelId}/featured-banner`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${auth.token}` },
+        body: fd,
+      });
+      if (res.ok) {
+        const data = await res.json() as { fileKey: string; url?: string };
+        setFeaturedBannerImageUrl(data.url ?? `${API_BASE}/banners/${data.fileKey}`);
+      }
+    } finally {
+      setBannerUploading(false);
+      if (bannerFileRef.current) bannerFileRef.current.value = '';
     }
   };
 
@@ -185,7 +216,7 @@ export function ConfigPanel() {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${auth.token}` },
         body: JSON.stringify({
           displayName, channelBio, avatarUrl,
-          brandAssets: { primaryColor, secondaryColor, accentColor, overlayPosition, overlayBgColor, overlayBgImageUrl },
+          brandAssets: { primaryColor, secondaryColor, accentColor, overlayPosition, overlayBgColor, overlayBgImageUrl, featuredBannerUrl, featuredBannerImageUrl, featuredBannerLabel },
         }),
       });
       if (!profileRes.ok) throw new Error(await profileRes.text());
@@ -363,6 +394,53 @@ export function ConfigPanel() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* ── Featured Banner ── */}
+      <div className="card">
+        <div className="card-title">⭐ Banner Destacado</div>
+        <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 10 }}>
+          Aparece arriba de Donaciones. Usa una imagen de tu red social favorita como fondo.
+        </p>
+        <div className="field">
+          <label>URL de destino (red social a destacar)</label>
+          <input
+            value={featuredBannerUrl}
+            onChange={(e) => setFeaturedBannerUrl(e.target.value)}
+            placeholder="https://www.instagram.com/..."
+          />
+        </div>
+        <div className="field">
+          <label>Texto del banner</label>
+          <input
+            value={featuredBannerLabel}
+            onChange={(e) => setFeaturedBannerLabel(e.target.value)}
+            placeholder="¡Sígueme en Instagram!"
+            maxLength={80}
+          />
+        </div>
+        <div className="field">
+          <label>Imagen de fondo (banner)</label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <input
+              ref={bannerFileRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              style={{ flex: 1, fontSize: 11 }}
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadBannerBg(f); }}
+            />
+            {bannerUploading && <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Subiendo...</span>}
+          </div>
+          {featuredBannerImageUrl && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6 }}>
+              <img src={featuredBannerImageUrl} style={{ height: 48, width: '100%', borderRadius: 8, objectFit: 'cover' }} alt="banner preview" />
+              <button className="btn btn--danger btn--sm" onClick={() => setFeaturedBannerImageUrl('')}>✕</button>
+            </div>
+          )}
+        </div>
+        {!featuredBannerUrl && (
+          <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>⚠ El banner se oculta si no hay URL de destino.</p>
+        )}
       </div>
 
       {/* ── Redes Sociales ── */}

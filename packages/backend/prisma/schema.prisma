@@ -76,7 +76,10 @@ model BrandAssets {
   accentColor       String        @default("#9147FF")   // theme accent — Pro customizable
   overlayPosition   String        @default("left")      // "left" | "right"
   overlayBgColor    String        @default("")          // CSS color or empty
-  overlayBgImageUrl String        @default("")          // URL of background image or empty
+  overlayBgImageUrl    String        @default("")          // URL of background image or empty
+  featuredBannerUrl    String        @default("")          // link URL for featured social banner
+  featuredBannerImageUrl String      @default("")          // banner background image URL
+  featuredBannerLabel  String        @default("")          // call-to-action text
   updatedAt         DateTime      @updatedAt
 }
 
